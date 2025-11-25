@@ -1,0 +1,6 @@
+1) Add support for saving and loading databases to/from files
+   (Later allow user to import a .csv from a file)
+2) Add user inputted values in the UI
+3) Add error functions for reusability ?
+4) Add socket support, can host a database on a server for access later
+5) Upload this shit to the hub
