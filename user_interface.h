@@ -33,4 +33,6 @@ int safeReadInt(Database* currentDB, size_t rowValue, size_t colValue);
 int safeReadFloat(Database* currentDB, size_t rowValue, size_t colValue);
 int safeReadDouble(Database* currentDB, size_t rowValue, size_t colValue);
 
+size_t safeReadSize();
+
 #endif

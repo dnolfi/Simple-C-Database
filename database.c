@@ -128,6 +128,7 @@ void deleteRow(Database* db, size_t rowIndex) {
         free(db->rows);
         db->rows = NULL;
     }
+    printf("Row %zu successfully deleted.\n", rowIndex);
 }
 
 void deleteColumn(Database* db, size_t columnIndex) {

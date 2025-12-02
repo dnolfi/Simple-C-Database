@@ -321,6 +321,16 @@ void cmdWriteCell(DatabaseList* dbl, Database** currentDB, char* name) {
 // Delete a specified row (user specifies by index)
 void cmdDeleteRow(DatabaseList* dbl, Database** currentDB, char* name) {
 
+    if (!(*currentDB)->rows) {
+        printf("Database '%s' has no rows to delete.\n", (*currentDB)->dbName);
+        return;
+    }
+
+    printf("Database '%s' has row indices (0-%zu) available.\n", (*currentDB)->dbName, (*currentDB)->numRows - 1);
+    printf("Enter the index of the row to delete > ");
+
+    size_t index = safeReadSize();
+    deleteRow(*currentDB, index);
 }
 
 // Delete a specified column (user specifies by index)
@@ -360,18 +370,35 @@ void cmdDeleteCol(DatabaseList* dbl, Database** currentDB, char* name) {
     }
 }
 
+size_t safeReadSize() {
+
+    char indexBuf[16];
+    size_t index;
+
+    if (fgets(indexBuf, sizeof(indexBuf), stdin) == NULL) {
+        fprintf(stderr, "Input error.\n");
+        return __SIZE_MAX__;
+    }
+
+    if (sscanf(indexBuf, "%zu", &index) != 1) {
+        fprintf(stderr, "Invlaid input.\n");
+        return __SIZE_MAX__; 
+    }
+
+    return index;
+}
 // Safely read an integer value from stdin
 int safeReadInt(Database* currentDB, size_t rowValue, size_t colValue) {
     int tableValue;
     char valBuf[16];
 
     if (fgets(valBuf, sizeof(valBuf), stdin) == NULL) {
-        printf("Input error.\n");
+        fprintf(stderr, "Input error.\n");
         return -1;
     }
 
     if (sscanf(valBuf, "%d", &tableValue) != 1) {
-        printf("Invalid input.\n");
+        fprintf(stderr, "Invalid input.\n");
         return -1;
     }
 
