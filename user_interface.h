@@ -25,6 +25,9 @@ void cmdNewRow(DatabaseList* dbl, Database** currentDB, char* name);
 void cmdWriteCell(DatabaseList* dbl, Database** currentDB, char* name);
 void cmdDeleteRow(DatabaseList* dbl, Database** currentDB, char* name);
 void cmdDeleteCol(DatabaseList* dbl, Database** currentDB, char* name);
+void cmdSaveDbToFile(DatabaseList* dbl, Database** currentDB, char* name);
+void cmdLoadDbFromFile(DatabaseList* dbl, Database** currentDB, char* name);
+void cmdChangeColName(DatabaseList* dbl, Database** currentDB, char* name);
 
 int safeReadInt(Database* currentDB, size_t rowValue, size_t colValue);
 int safeReadFloat(Database* currentDB, size_t rowValue, size_t colValue);

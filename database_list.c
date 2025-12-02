@@ -92,7 +92,7 @@ void deleteDatabaseFromList(DatabaseList* dbl, const char* name) {
     if (index >= 0) {
         removeDatabaseAtIndex(dbl, index);
     } else {
-        printf("Database %s not found. Enter a valid name.\n");
+        printf("Database %s not found. Enter a valid name.\n", name);
         return;
     }
 

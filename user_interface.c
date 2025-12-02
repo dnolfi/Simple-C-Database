@@ -18,7 +18,10 @@
         {"-newrow", cmdNewRow},
         {"-writecell", cmdWriteCell},
         {"-delrow", cmdDeleteRow},
-        {"-delcol", cmdDeleteCol}
+        {"-delcol", cmdDeleteCol},
+        {"-save", cmdSaveDbToFile},
+        {"-load", cmdLoadDbFromFile},
+        {"-colname", cmdChangeColName}
     };
 
 /* Refactored this to use handler design pattern */
@@ -45,9 +48,11 @@ void userMenu() {
         if (!currentDB)  printf("(scdb) >> ");
         else printf("(%s) >> ", currentDB->dbName);
 
+        // Get the user input 
         if (fgets(inputBuffer, sizeof(inputBuffer), stdin) != NULL) {
-            inputBuffer[strcspn(inputBuffer, "\n")] = '\0';
+            inputBuffer[strcspn(inputBuffer, "\n ")] = '\0';
         }
+
 
         int found = 0;
 
@@ -78,20 +83,23 @@ void cmdQuit(DatabaseList* dbl, Database** db, char* name) {
 
 void cmdHelp(DatabaseList* dbl, Database** db, char* name) {
 
-    printf("Supported commands: \n");
+    printf("\nSupported commands: \n");
     printf("------------------------\n");
     printf("1) -help\tShows list of commands\n");
     printf("2) -new\t\tCreate a new database\n");
     printf("3) -newcol\tCreate a new column (Columns MUST be created before rows)\n");
     printf("4) -newrow\tCreate a new row\n");
     printf("5) -writecell\tWrite a cell\n");
-    printf("x) -delete\tDelete the current database\n");
-    printf("x) -delrow\tDelete a row specified by it's index\n");
-    printf("x) -delcol\tDelete a column specified by it's index\n");
-    printf("x) -print\tPrint a table\n");
-    printf("x) -switch\tSwitch to a different database\n");
-    printf("x) -list\tList the available databases\n");
-    printf("x) -quit\tExit the program\n");
+    printf("6) -colname\tChange a column name\n");
+    printf("7) -delete\tDelete the current database\n");
+    printf("8) -delrow\tDelete a row specified by it's index\n");
+    printf("9) -delcol\tDelete a column specified by it's index\n");
+    printf("10) -print\tPrint a table\n");
+    printf("11) -switch\tSwitch to a different database\n");
+    printf("12) -list\tList the available databases\n");
+    printf("13) -quit\tExit the program\n");
+    printf("14) -save\tSave the database to a .csv file\n");
+    printf("15) -load\tLoad a database from a .csv file\n");
     printf("\n");
 }
 
@@ -115,6 +123,15 @@ void cmdCreateDB(DatabaseList* dbl, Database** currentDB, char* name) {
         dbName[strcspn(dbName, "\n")] = '\0';
     }
 
+    // Verify that a database with that name does not exist already
+    for (size_t index = 0; index < dbl->dbCount; index++) {
+        if (strcmp(dbName, dbl->dbList[index]->dbName) == 0) {
+            printf("Database with name %s already exists. Choose a new name.\n");
+            return;
+        }
+    }
+
+    // If there's space in the database, add the new database
     if (dbl->dbCount < dbl->dbLimit) {
 
         Database* db = createDatabase(dbName);
@@ -130,6 +147,7 @@ void cmdCreateDB(DatabaseList* dbl, Database** currentDB, char* name) {
     }
 }
 
+// Delete a database from the UI
 void cmdDeleteDB(DatabaseList* dbl, Database** currentDB, char* name) {
 
     printf("Enter the name of the Database to delete:\ndbName > ");
@@ -137,7 +155,7 @@ void cmdDeleteDB(DatabaseList* dbl, Database** currentDB, char* name) {
     char dbName[STRING_LEN];
 
     if (fgets(dbName, sizeof(dbName), stdin) != NULL) {
-        dbName[strcspn(dbName, "\n")] = '\0';
+        dbName[strcspn(dbName, "\n ")] = '\0';
     }
 
     if (*currentDB && strcmp(dbName, (*currentDB)->dbName) == 0)
@@ -146,6 +164,7 @@ void cmdDeleteDB(DatabaseList* dbl, Database** currentDB, char* name) {
     deleteDatabaseFromList(dbl, dbName);
 }
 
+// Switch to a different database
 void cmdSwitchDB(DatabaseList* dbl, Database** currentDB, char* name) {
 
     printf("Enter the name of the Database to switch to:\ndbName > ");
@@ -257,31 +276,43 @@ void cmdWriteCell(DatabaseList* dbl, Database** currentDB, char* name) {
         return;
     }
 
-    if ((*currentDB)->cols[colValue].type == INT_TYPE) {
-        printf("Index (%zu, %zu) has type INT. Enter an integer: ", rowValue, colValue);
-
-        if (safeReadInt(*currentDB, rowValue, colValue) < 0) {
-            printf("Error adding value to cell.\n");
-            return;
-        }
-    } 
-
-    else if ((*currentDB)->cols[colValue].type == FLOAT_TYPE) {
-        printf("Index (%zu, %zu) has type FLOAT. Enter a float: ", rowValue, colValue);
-
-        if (safeReadFloat(*currentDB, rowValue, colValue) < 0) {
-            printf("Error adding value to cell.\n");
-            return;
-        }
+    if ((rowValue >= (*currentDB)->numRows) || (colValue >= (*currentDB)->numCols)) {
+        fprintf(stderr, "Invalid table indices entered.\n");
+        return;
     }
 
-    else if ((*currentDB)->cols[colValue].type == DOUBLE_TYPE) {
-        printf("Index (%zu, %zu) has type DOUBLE. Enter a double: ", rowValue, colValue);
+    switch ((*currentDB)->cols[colValue].type) {
 
-        if (safeReadDouble(*currentDB, rowValue, colValue) < 0) {
-            printf("Error adding value to cell.\n");
-            return;
-        }
+        case INT_TYPE :
+            printf("Index (%zu, %zu) has type INT. Enter an integer: ", rowValue, colValue);
+
+            if (safeReadInt(*currentDB, rowValue, colValue) < 0) {
+                printf("Error adding value to cell.\n");
+                return;
+            }
+            break;
+
+        case FLOAT_TYPE :
+            printf("Index (%zu, %zu) has type FLOAT. Enter a float: ", rowValue, colValue);
+
+            if (safeReadFloat(*currentDB, rowValue, colValue) < 0) {
+                printf("Error adding value to cell.\n");
+                return;
+            }
+            break;
+
+        case DOUBLE_TYPE :
+            printf("Index (%zu, %zu) has type DOUBLE. Enter a double: ", rowValue, colValue);
+
+            if (safeReadDouble(*currentDB, rowValue, colValue) < 0) {
+                printf("Error adding value to cell.\n");
+                return;
+            }
+            break;
+        
+        default :
+            fprintf(stderr, "Index (%zu, %zu) has unrecognized type.\n", rowValue, colValue);
+            
     }
 
     printDatabase(*currentDB);
@@ -294,7 +325,39 @@ void cmdDeleteRow(DatabaseList* dbl, Database** currentDB, char* name) {
 
 // Delete a specified column (user specifies by index)
 void cmdDeleteCol(DatabaseList* dbl, Database** currentDB, char* name) {
+    
+    printf("Enter the name of the column to delete > ");
+    char colName[STRING_LEN];
 
+    if (fgets(colName, sizeof(colName), stdin) != NULL) {
+        colName[strcspn(colName, "\n")] = '\0';
+    }
+
+    int found = 0;
+    size_t index = 0;
+    // search for the column
+    for (size_t i = 0; i < (*currentDB)->numCols; i++) {
+        if (strcmp(colName, (*currentDB)->cols[i].colName) == 0) {
+            index = i;
+            found = 1;
+            break;
+        }
+    }
+
+    if (found) {
+        deleteColumn(*currentDB, index);
+        printf("Successfully deleted column: '%s'\n", colName);
+
+        // if there are no columns left, delete the rows
+        if (!((*currentDB)->numCols)) {
+            for (size_t j = (*currentDB)->numRows; j > 0; j--) {
+                deleteRow(*currentDB, j-1);
+            }
+        }
+
+    } else {
+        printf("Column: '%s' not found.\n", colName);
+    }
 }
 
 // Safely read an integer value from stdin
@@ -330,7 +393,7 @@ int safeReadFloat(Database* currentDB, size_t rowValue, size_t colValue) {
         return -1;
     }
 
-    if (sscanf(valBuf, "%ff", &tableValue) != 1) {
+    if (sscanf(valBuf, "%f", &tableValue) != 1) {
         printf("Invalid input.\n");
         return -1;
     }
@@ -363,4 +426,81 @@ int safeReadDouble(Database* currentDB, size_t rowValue, size_t colValue) {
     }
 
     return 0;
+}
+
+void cmdSaveDbToFile(DatabaseList* dbl, Database** currentDB, char* name) {
+
+    printf("Saving %s to a .csv file...\n", (*currentDB)->dbName);
+
+    // Create a duplicate string to add the extension (if it doesnt have it)
+    const char* csv = ".csv";
+
+    size_t newSize = strlen((*currentDB)->dbName) + strlen(csv) + 1;
+
+    char* fileName = malloc(newSize);
+
+    if (!fileName) {
+        fprintf(stderr, "Failed to allocate memory for filename\n");
+        return;
+    }
+
+    strcpy(fileName, (*currentDB)->dbName);
+
+    strcat(fileName, csv);
+
+    saveDatabaseToCSV(*currentDB, fileName);
+
+    free(fileName);
+}
+
+void cmdLoadDbFromFile(DatabaseList* dbl, Database** currentDB, char* name) {
+    
+    char csvName[STRING_LEN];
+
+    printf("Enter the name of the .csv file to load > ");
+
+    if (fgets(csvName, sizeof(csvName), stdin) != NULL) {
+        csvName[strcspn(csvName, "\n")] = '\0';
+    }
+
+    if (dbl->dbCount < dbl->dbLimit) {
+
+        Database* db = loadDatabaseFromCSV(csvName);
+
+        if (db) {
+            printf("Succesfully loaded Database: %s\n", csvName);
+            addDatabaseToList(db, dbl);
+            *currentDB = db;
+        } else {
+            printf("Unable to load: %s. File does not exist.\n", csvName);
+            return;
+        }
+
+    } else {
+        printf("Unable to load DB. Delete a database and try again.\n");
+    }
+
+    if (!currentDB)
+        return;
+}
+
+// Allows user to change a column name
+void cmdChangeColName(DatabaseList* dbl, Database** currentDB, char* name) {
+
+    // Get the column to 
+    printf("Enter the column name to change > ");
+    char inputBuffer[STRING_LEN];
+
+    if (fgets(inputBuffer, sizeof(inputBuffer), stdin) != NULL) {
+        inputBuffer[strcspn(inputBuffer, "\n ")] = '\0';
+    }
+
+    char newName[STRING_LEN];
+    printf("Enter the new name > ");
+
+    if (fgets(newName, sizeof(newName), stdin) != NULL) {
+        newName[strcspn(newName, "\n")] = '\0';
+    }
+
+    changeColumnName(*currentDB, newName, inputBuffer);
 }
